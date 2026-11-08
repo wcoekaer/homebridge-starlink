@@ -171,9 +171,32 @@ Tests cover circular-history ordering, missing values, alert/recovery delays, st
 
 The checked-in protobuf schema contains only `get_status` and `get_history` request fields. It was extracted from a Performance dish running firmware `2026.10.17.mr89322.2`. Other hardware/firmware may omit metrics or change the local API; unavailable fields display as unknown. There are no reboot, stow, configuration-write, or router-write operations in this plugin.
 
-## Publishing a GitHub release
+## GitHub releases and automatic npm staging
 
-Update the package version and lockfile, add release notes at `releases/vX.Y.Z.md`, and commit the changes. Push an annotated `vX.Y.Z` tag matching the package version to publish a release. The release workflow tests the plugin and child bridge, builds the installable `.tgz`, and attaches it with a SHA-256 checksum. It does not publish to npm.
+Update the package version and lockfile, add release notes at `releases/vX.Y.Z.md`, and commit the changes. Push an annotated `vX.Y.Z` tag matching the package version. The `release.yml` workflow tests the plugin and child bridge, publishes a GitHub release with the installable `.tgz` and checksum, and stages that exact archive on npm. Approve it in npm **Staged Packages** with 2FA after npm's validation completes to make it publicly installable.
+
+Staging uses npm trusted publishing (OIDC), with no npm token stored in GitHub. Configure this once in the npm package's **Settings → Trusted Publisher**:
+
+| Field | Value |
+| --- | --- |
+| Provider | GitHub Actions |
+| Organization or user | `wcoekaer` |
+| Repository | `homebridge-starlink` |
+| Workflow filename | `release.yml` |
+| Environment name | Leave blank |
+| Allowed actions | Stage publishing only; leave direct publishing disabled |
+
+Alternatively, after `npm login`, configure the same trust using npm 11.16 or later (npm requests 2FA):
+
+```sh
+npm trust github @wcoekaer/homebridge-starlink \
+  --repository wcoekaer/homebridge-starlink \
+  --file release.yml --allow-stage-publish
+```
+
+The workflow also handles stable GitHub releases published manually, provided their `.tgz` and `SHA256SUMS` assets are attached. Drafts and prereleases are not staged. For a retry, use **Actions → Release → Run workflow** and select the version **tag**, not `main`; the tag must contain this workflow version. An already-published npm version is skipped only when its contents match the release archive. A version still awaiting npm approval should be approved in the existing queue rather than uploaded again. The Actions job summary includes the stage ID.
+
+Automatic tag releases stage in the same workflow because events created using GitHub's `GITHUB_TOKEN` do not trigger another release workflow. The npm job has only repository read and OIDC permissions; it cannot approve the staged version.
 
 ## License
 
