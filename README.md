@@ -152,6 +152,10 @@ Tests cover circular-history ordering, missing values, alert/recovery delays, st
 
 The checked-in protobuf schema contains only `get_status` and `get_history` request fields. It was extracted from a Performance dish running firmware `2026.10.17.mr89322.2`. Other hardware/firmware may omit metrics or change the local API; unavailable fields display as unknown. There are no reboot, stow, configuration-write, or router-write operations in this plugin.
 
+## Publishing a GitHub release
+
+Update the package version and lockfile, add release notes at `releases/vX.Y.Z.md`, and commit the changes. Push an annotated `vX.Y.Z` tag matching the package version to publish a release. The release workflow tests the plugin and child bridge, builds the installable `.tgz`, and attaches it with a SHA-256 checksum. It does not publish to npm.
+
 ## License
 
 MIT. Bundled Manrope fonts use the SIL Open Font License; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). This is an independent project, not affiliated with SpaceX, Starlink, Apple, or the Homebridge project.
