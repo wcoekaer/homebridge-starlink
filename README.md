@@ -25,6 +25,8 @@ When telemetry becomes stale, the outage/degraded sensors report a fault and pre
 
 With multiple WANs, configure your router to send `192.168.100.1/32` to the actual Starlink WAN. A default route through an arbitrary load-balanced WAN is insufficient.
 
+Check for device-specific routing policies as well: a rule forcing the Homebridge host through another WAN may override a dish route that applies to all clients. In that case, add a specific policy for **Homebridge host → 192.168.100.1 → Starlink WAN**, preserving the host's normal Internet routing.
+
 ## Install this local plugin
 
 This repository is installable directly; it does not need to be published to npm. Do not assume an npm package with the same name is this implementation.
@@ -38,13 +40,15 @@ npm test
 npm pack
 ```
 
-Copy `homebridge-starlink-0.1.0.tgz` onto the machine running Homebridge. In a terminal for that Homebridge installation (the Homebridge UI terminal works for standard installations):
+Copy `homebridge-starlink-0.1.1.tgz` onto the machine running Homebridge. In a terminal for that Homebridge installation (the Homebridge UI terminal works for standard installations):
 
 ```sh
-npm install -g /absolute/path/homebridge-starlink-0.1.0.tgz
+npm install -g /absolute/path/homebridge-starlink-0.1.1.tgz
 ```
 
 Use the same Node/npm environment and permissions as the Homebridge service. In Docker, install inside the persistent Homebridge container environment, not on the Docker host. The archive includes compiled JavaScript, the telemetry schema, fonts, and the settings UI schema; development dependencies are not needed on the target host.
+
+To upgrade an existing installation, install the new archive the same way and restart the Starlink child bridge. Existing configuration and HomeKit pairings are retained; removing or pairing the accessories again is unnecessary. Version **0.1.1** fixes live-video setup when HomeKit control and video connections use different IP families, and makes camera startup failures and stale-telemetry errors visible in normal logs.
 
 Recent npm versions can require approval for dependency install scripts. If bundled FFmpeg was not downloaded, follow npm's install-script approval prompt for `ffmpeg-for-homebridge`, or install a suitable system FFmpeg and set its path. Do not disable all script protections globally.
 
@@ -124,7 +128,16 @@ npm run preview -- --host 192.168.100.1 --output artifacts/dashboard-live.png
 
 The probe outputs a small summary without dish/account identifiers or GPS coordinates. The preview writes PNG and SVG files. For a different gRPC port, configure the plugin's `port` setting; the CLI uses the standard port 9200.
 
-If the camera tile has an image but live view fails, check FFmpeg availability and UDP connectivity between Homebridge and your HomeKit viewer/home hub. If sensors become unavailable, verify the host's route to the dish and that the dish API is responding. Enable Homebridge debug logging for read failures.
+If the camera tile has an image but live view fails, update to 0.1.1 or later, then check the Homebridge log for camera startup errors, FFmpeg availability, and UDP connectivity between Homebridge and your HomeKit viewer/home hub. The snapshot is a JPEG and can work even when the separate video stream cannot start.
+
+If the dashboard renders with empty telemetry or the sensors become unavailable, run this from the **Homebridge UI terminal** (inside the container if applicable):
+
+```sh
+nc -vz -w 5 192.168.100.1 9200
+node "$(npm root -g)/homebridge-starlink/dist/cli.js" probe
+```
+
+The first command checks TCP reachability; the second reads actual telemetry with the installed plugin. Verify the host's route to the dish if the TCP test fails. Check the reported gRPC error if TCP connects but the probe fails. The stale warning includes the last telemetry error; Homebridge debug logging shows individual read failures.
 
 ## Development and verification
 

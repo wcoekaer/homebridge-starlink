@@ -1,6 +1,6 @@
 {
   "name": "homebridge-starlink",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Starlink connection health sensors and a graphical telemetry camera for Homebridge.",
   "license": "MIT",
   "keywords": [

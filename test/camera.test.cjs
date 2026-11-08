@@ -18,6 +18,22 @@ const prepare = (camera, req) => new Promise((resolve, reject) => camera.prepare
 const stream = (camera, req) => new Promise((resolve, reject) => camera.handleStreamRequest(req, e => e ? reject(e) : resolve()));
 const renderer = () => new DashboardRenderer(() => { const now = Date.now(), d = demoTelemetry(now); return { snapshot: normalize(d.status, d.history, now, now), now, revision: 1, health: { outage: false, degraded: false, unreachable: false, fault: false } }; });
 
+test('IPv4 video works when the HomeKit TCP connection has an IPv4-mapped IPv6 address', { timeout: 5000 }, async t => {
+  const hap = await import('@homebridge/hap-nodejs');
+  const camera = new DashboardCamera(hap, renderer(), config, log); t.after(() => camera.shutdown());
+  const req = { ...request(45000), sourceAddress: '::ffff:127.0.0.1' };
+  const response = await prepare(camera, req);
+  assert.ok(response.video.port > 0);
+});
+
+test('video and HomeKit control connections may use different IP families', { timeout: 5000 }, async t => {
+  const hap = await import('@homebridge/hap-nodejs');
+  const camera = new DashboardCamera(hap, renderer(), config, log); t.after(() => camera.shutdown());
+  const req = { ...request(45000), sourceAddress: '::1' };
+  const response = await prepare(camera, req);
+  assert.ok(response.video.port > 0);
+});
+
 test('dashboard camera sends encrypted RTP, supports reconfiguration, and cleans up', { timeout: 25000 }, async t => {
   const hap = await import('@homebridge/hap-nodejs');
   const camera = new DashboardCamera(hap, renderer(), config, log); t.after(() => camera.shutdown());
@@ -34,10 +50,12 @@ test('dashboard camera sends encrypted RTP, supports reconfiguration, and cleans
 });
 test('missing FFmpeg returns an error and releases the prepared session', { timeout: 15000 }, async t => {
   const hap = await import('@homebridge/hap-nodejs');
-  const camera = new DashboardCamera(hap, renderer(), { ...config, ffmpegPath: '/nonexistent/starlink-ffmpeg' }, log); t.after(() => camera.shutdown());
+  const warnings = [];
+  const camera = new DashboardCamera(hap, renderer(), { ...config, ffmpegPath: '/nonexistent/starlink-ffmpeg' }, { ...log, warn: (...args) => warnings.push(args.join(' ')) }); t.after(() => camera.shutdown());
   const req = request(45000); await prepare(camera, req);
   await assert.rejects(stream(camera, { sessionID: req.sessionID, type: 'start', video: { width: 640, height: 360, fps: 15, pt: 99, mtu: 1316, profile: 0, level: 0, max_bit_rate: 300 } }), /FFmpeg/);
   assert.equal(camera.sessions.size, 0);
+  assert.ok(warnings.some(message => message.includes('Cannot start FFmpeg')), 'startup failure is visible without debug logging');
 });
 
 test('the encrypted camera feed decrypts and decodes to a dashboard image', { timeout: 20000 }, async t => {
@@ -46,7 +64,7 @@ test('the encrypted camera feed decrypts and decodes to a dashboard image', { ti
   const reservation = dgram.createSocket('udp4');
   await new Promise((resolve, reject) => { reservation.once('error', reject); reservation.bind(0, '127.0.0.1', resolve); });
   const port = reservation.address().port; await new Promise(resolve => reservation.close(resolve));
-  const req = request(port); await prepare(camera, req);
+  const req = { ...request(port), sourceAddress: '::ffff:127.0.0.1' }; await prepare(camera, req);
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'starlink-srtp-'));
   t.after(() => fs.rm(temp, { recursive: true, force: true }));
   const sdp = path.join(temp, 'video.sdp');

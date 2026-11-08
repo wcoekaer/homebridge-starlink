@@ -33,7 +33,7 @@ export class StarlinkPlatform implements DynamicPlatformPlugin {
         .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'Starlink Monitor')
         .setCharacteristic(this.api.hap.Characteristic.Model, kind === 'camera' ? 'Telemetry Dashboard' : 'Connection Health')
         .setCharacteristic(this.api.hap.Characteristic.SerialNumber, uuid.slice(0, 18))
-        .setCharacteristic(this.api.hap.Characteristic.FirmwareRevision, '0.1.0');
+        .setCharacteristic(this.api.hap.Characteristic.FirmwareRevision, require('../package.json').version as string);
       return a;
     };
     const newlyCreated: PlatformAccessory[] = [];
@@ -81,7 +81,7 @@ export class StarlinkPlatform implements DynamicPlatformPlugin {
     const state = JSON.stringify(view.health);
     if (state !== this.lastState) {
       this.lastState = state;
-      if (view.health.unreachable) this.log.warn('Dish telemetry is stale; check power and the route to %s. Starlink Internet state is unknown.', this.config.host);
+      if (view.health.unreachable) this.log.warn('Dish telemetry is stale; check power and the route to %s:%s. Starlink Internet state is unknown. Last error: %s', this.config.host, this.config.port, view.error || 'No fresh telemetry received');
       else if (view.snapshot) this.log.info('Health: outage=%s degraded=%s', view.health.outage, view.health.degraded);
     }
     if (view.error) this.log.debug('%s', view.error);

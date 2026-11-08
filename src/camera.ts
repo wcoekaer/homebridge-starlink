@@ -48,6 +48,7 @@ export class DashboardCamera implements CameraStreamingDelegate {
     this.sessions.set(request.sessionID, session);
     let prepared = false;
     socket.on('error', error => {
+      this.log.warn('Dashboard video socket failed: %s', error.message);
       this.stop(request.sessionID);
       if (!prepared) { prepared = true; callback(error); }
       else this.controller.forceStopStreamingSession(request.sessionID);
@@ -56,11 +57,14 @@ export class DashboardCamera implements CameraStreamingDelegate {
       // HomeKit sends RTCP here. An abandoned viewer must not leave FFmpeg running.
       if (remote.address.replace(/^::ffff:/, '') === session.address.replace(/^::ffff:/, '')) this.armWatchdog(request.sessionID, session, 60000);
     });
-    socket.bind(0, request.sourceAddress || (request.addressVersion === 'ipv6' ? '::' : '0.0.0.0'), () => {
+    // The HomeKit control connection can use a different IP family (including
+    // IPv4-mapped IPv6) from the negotiated video endpoint. Bind for video.
+    socket.bind(0, request.addressVersion === 'ipv6' ? '::' : '0.0.0.0', () => {
       if (prepared || this.closed || !this.sessions.has(request.sessionID)) return;
       prepared = true;
       socket.unref();
       this.armWatchdog(request.sessionID, session, 30000);
+      this.log.debug('Dashboard video prepared for %s:%s (%s)', request.targetAddress, request.video.port, request.addressVersion);
       callback(undefined, { video: { port: socket.address().port, ssrc: session.ssrc, srtp_key: session.key, srtp_salt: session.salt } });
     });
   }
@@ -100,6 +104,7 @@ export class DashboardCamera implements CameraStreamingDelegate {
       `srtp://${address}:${session.port}?rtcpport=${session.port}&pkt_size=${Math.min(1316, Math.max(188, video.mtu))}`,
     ];
     const child = spawn(ffmpegPath(this.config.ffmpegPath), args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    this.log.debug('Starting dashboard video: %sx%s at %s fps', width, height, video.fps);
     session.process = child;
     let called = false, stderr = '', progress = '';
     const ready = (error?: Error) => {
@@ -110,18 +115,23 @@ export class DashboardCamera implements CameraStreamingDelegate {
       }
     };
     session.finishStart = ready;
-    session.startup = setTimeout(() => { ready(new Error('FFmpeg did not produce a dashboard frame in time')); this.stop(id); }, 12000);
+    session.startup = setTimeout(() => {
+      const error = new Error('FFmpeg did not produce a dashboard frame in time');
+      this.log.warn('%s', error.message); ready(error); this.stop(id);
+      this.controller.forceStopStreamingSession(id);
+    }, 12000);
     session.startup.unref();
     child.stdout.on('data', chunk => { progress = (progress + String(chunk)).slice(-1000); if (/frame=\s*[1-9]/.test(progress)) ready(); });
     child.stderr.on('data', chunk => { stderr = (stderr + String(chunk)).slice(-1500); });
     child.on('error', () => {
-      ready(new Error('Cannot start FFmpeg; install it or set camera.ffmpegPath'));
+      const error = new Error('Cannot start FFmpeg; install it or set camera.ffmpegPath');
+      this.log.warn('%s', error.message); ready(error);
       if (session.process === child) { this.stop(id); this.controller.forceStopStreamingSession(id); }
     });
     child.on('close', code => {
       if (session.process !== child) return;
+      if (!called || code) this.log.warn('Dashboard encoder stopped (%s): %s', code, stderr.replace(/(?:[A-Za-z0-9+/]{30,}={0,2})/g, '[redacted]').slice(-500));
       ready(new Error(`Dashboard encoder stopped (${code})`));
-      if (code) this.log.warn('Dashboard encoder stopped (%s): %s', code, stderr.replace(/(?:[A-Za-z0-9+/]{30,}={0,2})/g, '[redacted]').slice(-500));
       this.stop(id); this.controller.forceStopStreamingSession(id);
     });
     child.stdin.on('error', () => { /* process close/error handler owns cleanup */ });
@@ -131,7 +141,13 @@ export class DashboardCamera implements CameraStreamingDelegate {
       try {
         const jpeg = await this.renderer.render(width, height);
         if (session.process === child && !child.stdin.destroyed) child.stdin.write(jpeg, () => { if (session.process === child) session.writing = false; });
-      } catch { session.writing = false; ready(new Error('Dashboard rendering failed')); this.stop(id); }
+      } catch {
+        if (session.process !== child) return;
+        session.writing = false;
+        const error = new Error('Dashboard rendering failed');
+        this.log.warn('%s', error.message); ready(error); this.stop(id);
+        this.controller.forceStopStreamingSession(id);
+      }
     };
     void sendFrame();
     session.timer = setInterval(() => void sendFrame(), 200); session.timer.unref();
