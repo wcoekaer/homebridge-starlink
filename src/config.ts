@@ -1,4 +1,6 @@
-export const PLUGIN_NAME = 'homebridge-starlink';
+export const PLUGIN_NAME = '@wcoekaer/homebridge-starlink';
+// Keep HomeKit identities stable for installations of the original unscoped package.
+export const ACCESSORY_NAMESPACE = 'homebridge-starlink';
 export const PLATFORM_NAME = 'Starlink';
 
 export interface Settings {

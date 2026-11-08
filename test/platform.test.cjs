@@ -16,8 +16,8 @@ test('Homebridge lifecycle registers camera and sensors, restores cache, and rep
   } });
   const port = await new Promise((resolve, reject) => server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (err, port) => err ? reject(err) : resolve(port)));
   t.after(() => server.forceShutdown());
-  const created = [], removed = [];
-  api.registerPlatformAccessories = (_plugin, _platform, items) => created.push(...items);
+  const created = [], removed = [], registeredPlugins = [];
+  api.registerPlatformAccessories = (plugin, _platform, items) => { registeredPlugins.push(plugin); created.push(...items); };
   api.unregisterPlatformAccessories = (_plugin, _platform, items) => removed.push(...items);
   api.updatePlatformAccessories = () => {};
   const logger = { info() {}, warn() {}, debug() {}, error() {} };
@@ -27,6 +27,8 @@ test('Homebridge lifecycle registers camera and sensors, restores cache, and rep
   api.emit('didFinishLaunching');
   await new Promise(resolve => p.monitor.once('update', resolve));
   assert.equal(created.length, 4);
+  assert.deepEqual(registeredPlugins, ['@wcoekaer/homebridge-starlink']);
+  assert.deepEqual(created.map(a => a.UUID).sort(), ['outage', 'degraded', 'unreachable', 'camera'].map(kind => api.hap.uuid.generate(`homebridge-starlink:127.0.0.1:${port}:${kind}`)).sort(), 'scoped package preserves all legacy HomeKit accessory identities');
   assert.equal(p.sensors.get('outage').getCharacteristic(api.hap.Characteristic.ContactSensorState).value, 0);
   const camera = created.find(a => a.displayName.includes('Dashboard'));
   assert.ok(camera.getService(api.hap.Service.CameraRTPStreamManagement));

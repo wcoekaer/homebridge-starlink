@@ -1,5 +1,5 @@
 import type { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge' with { 'resolution-mode': 'import' };
-import { settings, PLUGIN_NAME, PLATFORM_NAME, type Settings } from './config';
+import { settings, PLUGIN_NAME, PLATFORM_NAME, ACCESSORY_NAMESPACE, type Settings } from './config';
 import { StarlinkClient } from './client';
 import { TelemetryMonitor, type View } from './telemetry';
 import { DashboardRenderer } from './dashboard';
@@ -24,7 +24,7 @@ export class StarlinkPlatform implements DynamicPlatformPlugin {
     this.monitor = new TelemetryMonitor(source, this.config);
     const keep = new Set<string>();
     const accessory = (kind: string, name: string, category?: number): PlatformAccessory => {
-      const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:${this.config.host}:${this.config.port}:${kind}`);
+      const uuid = this.api.hap.uuid.generate(`${ACCESSORY_NAMESPACE}:${this.config.host}:${this.config.port}:${kind}`);
       keep.add(uuid);
       let a = this.accessories.get(uuid);
       if (!a) { a = new this.api.platformAccessory(name, uuid, category); this.accessories.set(uuid, a); }

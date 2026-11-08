@@ -27,11 +27,19 @@ With multiple WANs, configure your router to send `192.168.100.1/32` to the actu
 
 Check for device-specific routing policies as well: a rule forcing the Homebridge host through another WAN may override a dish route that applies to all clients. In that case, add a specific policy for **Homebridge host → 192.168.100.1 → Starlink WAN**, preserving the host's normal Internet routing.
 
-## Install this local plugin
+## Install from npm
 
-This repository is installable directly; it does not need to be published to npm. Do not assume an npm package with the same name is this implementation.
+The package name is **`@wcoekaer/homebridge-starlink`**. Search for that full name in the Homebridge UI, or run this in the terminal for your Homebridge installation:
 
-Build an installation archive:
+```sh
+npm install -g @wcoekaer/homebridge-starlink
+```
+
+Restart Homebridge, then configure the Starlink platform and its child bridge as described below.
+
+## Install from a release archive
+
+Download the `.tgz` asset from [GitHub Releases](https://github.com/wcoekaer/homebridge-starlink/releases), or build an installation archive locally:
 
 ```sh
 cd ~/homebridge-starlink
@@ -40,19 +48,30 @@ npm test
 npm pack
 ```
 
-Copy `homebridge-starlink-0.1.1.tgz` onto the machine running Homebridge. In a terminal for that Homebridge installation (the Homebridge UI terminal works for standard installations):
+Copy `wcoekaer-homebridge-starlink-0.1.2.tgz` onto the machine running Homebridge. In a terminal for that Homebridge installation (the Homebridge UI terminal works for standard installations):
 
 ```sh
-npm install -g /absolute/path/homebridge-starlink-0.1.1.tgz
+npm install -g /absolute/path/wcoekaer-homebridge-starlink-0.1.2.tgz
 ```
 
 Use the same Node/npm environment and permissions as the Homebridge service. In Docker, install inside the persistent Homebridge container environment, not on the Docker host. The archive includes compiled JavaScript, the telemetry schema, fonts, and the settings UI schema; development dependencies are not needed on the target host.
 
-To upgrade an existing installation, install the new archive the same way and restart the Starlink child bridge. Existing configuration and HomeKit pairings are retained; removing or pairing the accessories again is unnecessary. Version **0.1.1** fixes live-video setup when HomeKit control and video connections use different IP families, and makes camera startup failures and stale-telemetry errors visible in normal logs.
+For upgrades within the scoped package, install the new version and restart the Starlink child bridge. For the original unscoped 0.1.0/0.1.1 package, follow the migration steps below.
 
 Recent npm versions can require approval for dependency install scripts. If bundled FFmpeg was not downloaded, follow npm's install-script approval prompt for `ffmpeg-for-homebridge`, or install a suitable system FFmpeg and set its path. Do not disable all script protections globally.
 
 For local development on a machine that also runs Homebridge, `npm link` from this repository is an alternative to installing the archive. Rebuild and restart the plugin's child bridge after source changes.
+
+## Migrate from the original unscoped package
+
+Version 0.1.2 changes the npm package name from `homebridge-starlink` to `@wcoekaer/homebridge-starlink`. Install the scoped package, remove the old package, and then restart Homebridge. **Do not restart between installing the new package and removing the old one.** For an archive installation:
+
+```sh
+npm install -g /absolute/path/wcoekaer-homebridge-starlink-0.1.2.tgz
+npm uninstall -g homebridge-starlink
+```
+
+Keep the existing `Starlink` platform configuration and `_bridge` settings. If your Homebridge config has a `plugins` allowlist, replace `homebridge-starlink` there with `@wcoekaer/homebridge-starlink`. The platform alias and accessory UUIDs are unchanged, allowing Homebridge to migrate the cached accessories and retain HomeKit pairing, rooms, and automations. Do not remove the bridge from Apple Home or clear its accessory cache.
 
 ## Configure and pair as a child bridge
 
@@ -134,7 +153,7 @@ If the dashboard renders with empty telemetry or the sensors become unavailable,
 
 ```sh
 nc -vz -w 5 192.168.100.1 9200
-node "$(npm root -g)/homebridge-starlink/dist/cli.js" probe
+node "$(npm root -g)/@wcoekaer/homebridge-starlink/dist/cli.js" probe
 ```
 
 The first command checks TCP reachability; the second reads actual telemetry with the installed plugin. Verify the host's route to the dish if the TCP test fails. Check the reported gRPC error if TCP connects but the probe fails. The stale warning includes the last telemetry error; Homebridge debug logging shows individual read failures.

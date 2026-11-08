@@ -32,7 +32,7 @@ jobs:
           const fs = require('node:fs');
           const { name, version } = require('./package.json');
           const tag = process.env.GITHUB_REF_NAME;
-          if (name !== 'homebridge-starlink' || !/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
+          if (name !== '@wcoekaer/homebridge-starlink' || !/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
             throw new Error('Release tag must match the stable package version');
           }
           if (!fs.readFileSync(`releases/${tag}.md`, 'utf8').trim()) {
@@ -47,14 +47,14 @@ jobs:
           mkdir -p artifacts
           npm pack --pack-destination artifacts
           cd artifacts
-          sha256sum homebridge-starlink-*.tgz > SHA256SUMS
+          sha256sum wcoekaer-homebridge-starlink-*.tgz > SHA256SUMS
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            artifacts/homebridge-starlink-*.tgz artifacts/SHA256SUMS \
+            artifacts/wcoekaer-homebridge-starlink-*.tgz artifacts/SHA256SUMS \
             --verify-tag \
             --title "Homebridge Starlink $GITHUB_REF_NAME" \
             --notes-file "releases/$GITHUB_REF_NAME.md" \
