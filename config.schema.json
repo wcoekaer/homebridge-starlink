@@ -1,0 +1,210 @@
+{
+  "pluginAlias": "Starlink",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Read-only Starlink health sensors and a graphical dashboard camera. After saving, use **Set Up Child Bridge** on this plugin, restart, and pair the child bridge in Apple Home. Sensors use **Open = problem** and **Closed = clear**.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Accessory name",
+        "type": "string",
+        "default": "Starlink",
+        "maxLength": 50
+      },
+      "host": {
+        "title": "Dish address",
+        "type": "string",
+        "default": "192.168.100.1",
+        "description": "Local IP address or hostname. The Homebridge host needs a route to the dish."
+      },
+      "sensors": {
+        "type": "object",
+        "title": "Health sensors",
+        "properties": {
+          "outage": {
+            "title": "Starlink outage",
+            "type": "boolean",
+            "default": true,
+            "description": "Opens after a confirmed, sustained dish-reported outage."
+          },
+          "degraded": {
+            "title": "Degraded connection",
+            "type": "boolean",
+            "default": true,
+            "description": "Opens after sustained high loss, latency, or a hardware performance alert."
+          },
+          "unreachable": {
+            "title": "Monitor unreachable",
+            "type": "boolean",
+            "default": true,
+            "description": "Opens when telemetry is stale. This does not imply the Internet connection is down."
+          }
+        }
+      },
+      "camera": {
+        "type": "object",
+        "title": "Dashboard camera",
+        "properties": {
+          "enabled": {
+            "title": "Enable dashboard camera",
+            "type": "boolean",
+            "default": true
+          },
+          "name": {
+            "title": "Camera name",
+            "type": "string",
+            "default": "Starlink Dashboard",
+            "maxLength": 64
+          },
+          "maxStreams": {
+            "title": "Simultaneous viewers",
+            "type": "integer",
+            "default": 2,
+            "minimum": 1,
+            "maximum": 4
+          },
+          "ffmpegPath": {
+            "title": "Custom FFmpeg path (optional)",
+            "type": "string",
+            "description": "Normally leave blank to use bundled FFmpeg or the system PATH."
+          }
+        }
+      },
+      "outageDelaySeconds": {
+        "title": "Outage confirmation (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 0,
+        "maximum": 600
+      },
+      "degradedDelaySeconds": {
+        "title": "Degradation confirmation (seconds)",
+        "type": "integer",
+        "default": 120,
+        "minimum": 0,
+        "maximum": 1800
+      },
+      "recoveryDelaySeconds": {
+        "title": "Recovery confirmation (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 0,
+        "maximum": 600
+      },
+      "lossThresholdPercent": {
+        "title": "Ping loss threshold (%)",
+        "type": "number",
+        "default": 2,
+        "minimum": 0.01,
+        "maximum": 100
+      },
+      "latencyThresholdMs": {
+        "title": "95th-percentile latency threshold (ms)",
+        "type": "integer",
+        "default": 150,
+        "minimum": 1,
+        "maximum": 5000
+      },
+      "qualityWindowSeconds": {
+        "title": "Quality evaluation window (seconds)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 10,
+        "maximum": 900
+      },
+      "pollIntervalSeconds": {
+        "title": "Status poll interval (seconds)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 2,
+        "maximum": 60
+      },
+      "historyIntervalSeconds": {
+        "title": "History poll interval (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 10,
+        "maximum": 300
+      },
+      "staleAfterSeconds": {
+        "title": "Telemetry stale after (seconds)",
+        "type": "integer",
+        "default": 30,
+        "minimum": 10,
+        "maximum": 300,
+        "description": "Must be at least twice the status polling interval."
+      },
+      "timeoutSeconds": {
+        "title": "Request timeout (seconds)",
+        "type": "integer",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 20
+      },
+      "port": {
+        "title": "Dish gRPC port",
+        "type": "integer",
+        "default": 9200,
+        "minimum": 1,
+        "maximum": 65535
+      }
+    }
+  },
+  "form": [
+    {
+      "type": "fieldset",
+      "title": "Connection",
+      "items": [
+        "name",
+        "host"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "HomeKit sensors",
+      "items": [
+        "sensors.outage",
+        "sensors.degraded",
+        "sensors.unreachable"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Dashboard camera",
+      "items": [
+        "camera.enabled",
+        "camera.name"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Alert thresholds",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "outageDelaySeconds",
+        "degradedDelaySeconds",
+        "recoveryDelaySeconds",
+        "lossThresholdPercent",
+        "latencyThresholdMs",
+        "qualityWindowSeconds"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "pollIntervalSeconds",
+        "historyIntervalSeconds",
+        "staleAfterSeconds",
+        "timeoutSeconds",
+        "port",
+        "camera.maxStreams",
+        "camera.ffmpegPath"
+      ]
+    }
+  ]
+}

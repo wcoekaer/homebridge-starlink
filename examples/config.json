@@ -1,0 +1,13 @@
+{
+  "platform": "Starlink",
+  "name": "Starlink",
+  "host": "192.168.100.1",
+  "camera": {
+    "enabled": true,
+    "name": "Starlink Dashboard"
+  },
+  "_bridge": {
+    "username": "0E:58:41:52:4C:4B",
+    "port": 51847
+  }
+}

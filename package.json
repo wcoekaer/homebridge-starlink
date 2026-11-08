@@ -1,0 +1,63 @@
+{
+  "name": "homebridge-starlink",
+  "version": "0.1.0",
+  "description": "Starlink connection health sensors and a graphical telemetry camera for Homebridge.",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "starlink",
+    "homekit",
+    "camera",
+    "telemetry"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || ^26.0.0",
+    "homebridge": ">=1.8.0 <3"
+  },
+  "files": [
+    "dist",
+    "proto",
+    "assets",
+    "config.schema.json",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "preview": "npm run build && node dist/cli.js preview",
+    "probe": "npm run build && node dist/cli.js probe",
+    "prepack": "npm run build",
+    "test:child-bridge": "npm run build && node scripts/smoke-child-bridge.cjs"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.7",
+    "@grpc/proto-loader": "^0.8.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "homebridge": "^2.5.0",
+    "typescript": "^7.0.2"
+  },
+  "optionalDependencies": {
+    "ffmpeg-for-homebridge": "^2.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wcoekaer/homebridge-starlink.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wcoekaer/homebridge-starlink/issues"
+  },
+  "homepage": "https://github.com/wcoekaer/homebridge-starlink#readme",
+  "allowScripts": {
+    "ffmpeg-for-homebridge": true,
+    "protobufjs": true
+  }
+}
